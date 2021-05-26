@@ -144,7 +144,18 @@ def passthrough(yid, quality_id, **kwargs):
         return 'Cannot obtain audio', 404
     else:
         return resp
-
+# /api/list/RDCLAK5uy_n9Fbdw7e6ap-98_A-8JYBmPv64v-Uaq1g
+@app.route("/api/list/<yid>/", methods=["GET"], strict_slashes=False)
+@log_request(logger)
+@cross_origin()
+def getList(yid, **kwargs):
+    logger.info(f'/api/list/{yid}')
+    try:
+        return ytdl.get_playlist_videos(f'https://www.youtube.com/playlist?list={yid}')
+    except ytdl.YoutubeDLError as e:
+        if FALLBACK_PROXY is None or FALLBACK_PROXY == '':
+            raise e
+        return ytdl.get_playlist_videos(f'https://www.youtube.com/playlist?list={yid}')
 
 if __name__ == '__main__':
     if os.environ.get('PORT') is not None:
