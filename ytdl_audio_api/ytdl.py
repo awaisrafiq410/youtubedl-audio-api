@@ -86,7 +86,18 @@ def format_for_videos(urls, **kwargs):
         logger.warning('[format_for_videos] Error for %s: %s', url, repr(error))
         raise YoutubeDLError(repr(error), url)
     return results
-
+def get_playlist_videos(url):
+    log = InMemoryLogger()
+    ydl_opts = {
+        'logger': log,
+        'forcejson': True,
+        'simulate': True
+    }
+    ydl = youtube_dl.YoutubeDL(ydl_opts)
+    # ydl.add_default_info_extractors()
+    playlist=ydl.extract_info(url, download=False)
+    ids=[video['id'] for video in playlist['entries']]
+    return {'ids':ids}
 
 def get_urls(urls, quality_id: str='bestvideo/best,bestaudio/best', **kwargs):
     """ Get a list direct audio URL for every video URL, with some extra info """
@@ -112,6 +123,10 @@ def get_urls(urls, quality_id: str='bestvideo/best,bestaudio/best', **kwargs):
                 'likes': info['like_count'],
                 'dislikes': info['dislike_count'],
                 'views': info['view_count'],
+                'artist':info['artist'],
+                'album':info['album'],
+                'thumbnail':info['thumbnail'],
+                'track':info['track'],
                 'urls': {fmt['format_id']: fmt['url'] for fmt in requested_formats},
             }
             results.append(return_value)
