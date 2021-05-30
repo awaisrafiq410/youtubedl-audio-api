@@ -102,7 +102,7 @@ def get_playlist_videos(url):
         raw=data[0].replace('var ytInitialData = ','')[:-1]
         playlist=json.loads(raw)['contents']['twoColumnBrowseResultsRenderer']['tabs'][0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]['playlistVideoListRenderer']['contents']
         ids=[video['playlistVideoRenderer']['videoId'] for video in playlist]
-        return ids
+        return {'ids':ids}
 
 def get_urls(urls, quality_id: str='bestvideo/best,bestaudio/best', **kwargs):
     """ Get a list direct audio URL for every video URL, with some extra info """
