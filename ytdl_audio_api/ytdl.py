@@ -89,13 +89,20 @@ def format_for_videos(urls, **kwargs):
         raise YoutubeDLError(repr(error), url)
     return results
 def get_playlist_videos(url):
-    res=requests.get("https://cors-anywhere.herokuapp.com/"+url,headers={'origin':'youtube.com'})
-    parser = html.fromstring(res.text)
-    data=parser.xpath("//script[contains(text(),'ytInitialData')]//text()")
-    raw=data[0].replace('var ytInitialData = ','')[:-1]
-    playlist=json.loads(raw)['contents']['twoColumnBrowseResultsRenderer']['tabs'][0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]['playlistVideoListRenderer']['contents']
-    ids=[video['playlistVideoRenderer']['videoId'] for video in playlist]
-    return {'ids':ids}
+    if requests.get('https://cors-anywhere.herokuapp.com/').status_code!=200:
+        token_parser=html.fromstring(requests.get('https://cors-anywhere.herokuapp.com/corsdemo').text)
+        token=token_parser.xpath("//input[@name='accessRequest']/@value")[0]
+        newUrl='https://cors-anywhere.herokuapp.com/corsdemo?accessRequest='+token
+        requests.get(newUrl)
+        return get_playlist_videos(url)
+    else:
+        res=requests.get("https://cors-anywhere.herokuapp.com/"+url,headers={'origin':'youtube.com'})
+        parser = html.fromstring(res.text)
+        data=parser.xpath("//script[contains(text(),'ytInitialData')]//text()")
+        raw=data[0].replace('var ytInitialData = ','')[:-1]
+        playlist=json.loads(raw)['contents']['twoColumnBrowseResultsRenderer']['tabs'][0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]['playlistVideoListRenderer']['contents']
+        ids=[video['playlistVideoRenderer']['videoId'] for video in playlist]
+        return ids
 
 def get_urls(urls, quality_id: str='bestvideo/best,bestaudio/best', **kwargs):
     """ Get a list direct audio URL for every video URL, with some extra info """
