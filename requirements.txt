@@ -7,4 +7,5 @@ gunicorn == 20.*
 gunicorn[gevent]
 gevent == 20.*
 requests == 2.*
+lxml == 4.*
 Werkzeug == 1.*
