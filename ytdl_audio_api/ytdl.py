@@ -6,6 +6,8 @@ import logging
 import re
 import youtube_dl
 from flask import json
+import requests
+from lxml import html
 from .logger import InMemoryLogger
 
 
@@ -87,16 +89,12 @@ def format_for_videos(urls, **kwargs):
         raise YoutubeDLError(repr(error), url)
     return results
 def get_playlist_videos(url):
-    log = InMemoryLogger()
-    ydl_opts = {
-        'logger': log,
-        'forcejson': True,
-        'simulate': True
-    }
-    ydl = youtube_dl.YoutubeDL(ydl_opts)
-    # ydl.add_default_info_extractors()
-    playlist=ydl.extract_info(url, download=False)
-    ids=[video['id'] for video in playlist['entries']]
+    res=requests.get("https://cors-anywhere.herokuapp.com/"+url,headers={'origin':'youtube.com'})
+    parser = html.fromstring(res.text)
+    data=parser.xpath("//script[contains(text(),'ytInitialData')]//text()")
+    raw=data[0].replace('var ytInitialData = ','')[:-1]
+    playlist=json.loads(raw)['contents']['twoColumnBrowseResultsRenderer']['tabs'][0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]['playlistVideoListRenderer']['contents']
+    ids=[video['playlistVideoRenderer']['videoId'] for video in playlist]
     return {'ids':ids}
 
 def get_urls(urls, quality_id: str='bestvideo/best,bestaudio/best', **kwargs):
@@ -115,19 +113,34 @@ def get_urls(urls, quality_id: str='bestvideo/best,bestaudio/best', **kwargs):
             else:
                 requested_formats = info.get('requested_formats', [info])
 
-            return_value = {
+            try:
+                album=info['album']
+            except Exception as e:
+                 album=" "
+            try:
+                artist=info['artist']
+            except Exception as e:
+                 artist=" "  
+            try:
+                track=info['track']
+            except Exception as e:
+                 track=" "  
+            if 'Music' in info['categories']:
+                return_value = {
                 'title': info['title'],
-                'description': info['description'],
                 'duration': info['duration'],
                 'thumbnail': info['thumbnail'],
-                'likes': info['like_count'],
-                'dislikes': info['dislike_count'],
-                'views': info['view_count'],
-                'artist':info['artist'],
-                'album':info['album'],
-                'thumbnail':info['thumbnail'],
-                'track':info['track'],
-                'urls': {fmt['format_id']: fmt['url'] for fmt in requested_formats},
+                'artist':artist,
+                'album':album,
+                'track':track,
+                'urls': {fmt['format_id']: fmt['url'] for fmt in requested_formats}
+            }
+            else:
+                return_value = {
+                'title': info['title'],
+                'duration': info['duration'],
+                'thumbnail': info['thumbnail'],
+                'urls': {fmt['format_id']: fmt['url'] for fmt in requested_formats}
             }
             results.append(return_value)
             logger.debug('[get_urls] Output for %s@%s:\n%s', url, quality_id, repr(return_value))
